@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <title>Stock Explainer AI</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://apifreellm.com/apifree.min.js"></script>
   <style>
     body { font-family: Arial, sans-serif; margin: 2rem; background: #f4f4f4; }
     #container { background: white; padding: 2rem; border-radius: 10px; max-width: 800px; margin: auto; }
@@ -20,27 +21,37 @@
     <div id="result"></div>
     <canvas id="chart"></canvas>
   </div>
+
   <script>
     let chart;
     async function analyze() {
       const ticker = document.getElementById('ticker').value.trim();
       if (!ticker) return alert("Enter a ticker!");
       document.getElementById('result').innerHTML = "⏳ Analyzing...";
-      const res = await fetch('/api/analyze/' + ticker);
-      const data = await res.json();
-      if (data.error) {
-        document.getElementById('result').innerHTML = "❌ " + data.error;
-      } else {
+
+      try {
+        // Fetch stock data from Yahoo Finance
+        const res = await fetch('/api/stock/' + ticker);
+        const data = await res.json();
+
+        if (data.error) {
+          document.getElementById('result').innerHTML = "❌ " + data.error;
+          return;
+        }
+
+        const { quote, history } = data;
+
+        // Show stock info
         document.getElementById('result').innerHTML = `
-          <h3>${data.ticker}</h3>
-          <p><b>Price:</b> $${data.quote.regularMarketPrice}</p>
-          <p><b>Sector:</b> ${data.quote.sector || 'N/A'}</p>
-          <h4>AI Explanation:</h4>
-          <p>${data.explanation}</p>
+          <h3>${ticker}</h3>
+          <p><b>Price:</b> $${quote.regularMarketPrice}</p>
+          <p><b>Sector:</b> ${quote.sector || 'N/A'}</p>
+          <p><b>AI Explanation:</b> <span id="ai-output">⏳ Generating...</span></p>
         `;
+
         // Draw chart
-        const labels = data.quote.history.dates;
-        const prices = data.quote.history.closes;
+        const labels = history.dates;
+        const prices = history.closes;
         const ctx = document.getElementById('chart').getContext('2d');
         if (chart) chart.destroy();
         chart = new Chart(ctx, {
@@ -62,6 +73,20 @@
             }
           }
         });
+
+        // Generate AI explanation using ApiFreeLLM
+        const context = `
+          Stock: ${ticker}
+          Current Price: ${quote.regularMarketPrice}
+          52w High/Low: ${quote.fiftyTwoWeekHigh} / ${quote.fiftyTwoWeekLow}
+          Sector: ${quote.sector || 'N/A'}
+          Recent closing prices: ${history.closes.slice(-5).join(', ')}
+        `;
+        const explanation = await apifree.chat(`Explain this stock to a beginner in simple language:\n${context}`);
+        document.getElementById('ai-output').innerText = explanation;
+
+      } catch (err) {
+        document.getElementById('result').innerHTML = "❌ " + err.message;
       }
     }
   </script>
