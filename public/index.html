@@ -27,17 +27,69 @@
     async function analyze() {
       const ticker = document.getElementById('ticker').value.trim();
       if (!ticker) return alert("Enter a ticker!");
+    
       document.getElementById('result').innerHTML = "⏳ Analyzing...";
-
+    
       try {
-        // Fetch stock data from Yahoo Finance
-        const res = await fetch('/api/stock/' + ticker);
+        const res = await fetch(`/api/stock/${ticker}`);
         const data = await res.json();
-
+    
         if (data.error) {
-          document.getElementById('result').innerHTML = "❌ " + data.error;
+          document.getElementById('result').innerHTML = `❌ ${data.error}`;
           return;
         }
+    
+        // Process and display data from multiple sources
+        displayAlphaVantageData(data.alphaVantage);
+        displayFinnhubData(data.finnhub);
+        displayMarketstackData(data.marketstack);
+        displayTwelveData(data.twelveData);
+    
+      } catch (err) {
+        document.getElementById('result').innerHTML = `❌ ${err.message}`;
+      }
+    }
+
+function displayAlphaVantageData(data) {
+  // Extract and display relevant data from Alpha Vantage
+}
+
+function displayFinnhubData(data) {
+  // Extract and display relevant data from Finnhub
+}
+
+function displayMarketstackData(data) {
+  // Extract and display relevant data from Marketstack
+}
+
+function displayTwelveData(data) {
+  // Extract and display relevant data from Twelve Data
+}
+    <div id="tv_chart_container"></div>
+
+<script type="text/javascript">
+  new TradingView.widget({
+    autosize: true,
+    symbol: 'NASDAQ:AAPL',
+    interval: 'D',
+    container_id: 'tv_chart_container',
+    datafeed: new Datafeeds.UDFCompatibleDatafeed('https://demo_feed.tradingview.com'),
+    library_path: '/path/to/charting_library/',
+    locale: 'en',
+    disabled_features: ['header_widget', 'timeframes_toolbar'],
+    enabled_features: ['study_templates'],
+    overrides: {
+      'mainSeriesProperties.style': 1,
+      'paneProperties.background': '#ffffff',
+      'paneProperties.vertGridProperties.color': '#f1f3f6',
+      'paneProperties.horzGridProperties.color': '#f1f3f6',
+      'symbolWatermarkProperties.transparency': 90,
+    },
+  });
+</script>
+
+
+
 
         const { quote, history } = data;
 
