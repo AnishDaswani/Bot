@@ -1,29 +1,62 @@
 import express from 'express';
-import path from 'path';
-import { fileURLToPath } from 'url';
-import yahooFinance from 'yahoo-finance2';
+import axios from 'axios';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 const app = express();
 const PORT = 3000;
 
-app.use(express.static(path.join(__dirname, 'public')));
+const API_KEYS = {
+  alphaVantage: 'YOUR_ALPHA_VANTAGE_API_KEY',
+  finnhub: 'YOUR_FINNHUB_API_KEY',
+  marketstack: 'YOUR_MARKETSTACK_API_KEY',
+  twelveData: 'YOUR_TWELVE_DATA_API_KEY',
+};
 
-// API to fetch stock data
+const fetchAlphaVantageData = async (ticker) => {
+  const url = `https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol=${ticker}&apikey=${API_KEYS.alphaVantage}`;
+  const response = await axios.get(url);
+  return response.data;
+};
+
+const fetchFinnhubData = async (ticker) => {
+  const url = `https://finnhub.io/api/v1/quote?symbol=${ticker}&token=${API_KEYS.finnhub}`;
+  const response = await axios.get(url);
+  return response.data;
+};
+
+const fetchMarketstackData = async (ticker) => {
+  const url = `http://api.marketstack.com/v1/eod?access_key=${API_KEYS.marketstack}&symbols=${ticker}`;
+  const response = await axios.get(url);
+  return response.data;
+};
+
+const fetchTwelveData = async (ticker) => {
+  const url = `https://api.twelvedata.com/time_series?symbol=${ticker}&interval=1day&apikey=${API_KEYS.twelveData}`;
+  const response = await axios.get(url);
+  return response.data;
+};
+
 app.get('/api/stock/:ticker', async (req, res) => {
   const ticker = req.params.ticker.toUpperCase();
+
   try {
-    const quote = await yahooFinance.quote(ticker);
-    const historyData = await yahooFinance.chart(ticker, { range: '1mo', interval: '1d' });
-    const history = {
-      dates: historyData.quotes.map(q => new Date(q.date).toLocaleDateString()),
-      closes: historyData.quotes.map(q => q.close)
-    };
-    res.json({ quote, history });
-  } catch (err) {
-    res.json({ error: err.message });
+    const [alphaVantageData, finnhubData, marketstackData, twelveData] = await Promise.all([
+      fetchAlphaVantageData(ticker),
+      fetchFinnhubData(ticker),
+      fetchMarketstackData(ticker),
+      fetchTwelveData(ticker),
+    ]);
+
+    res.json({
+      alphaVantage: alphaVantageData,
+      finnhub: finnhubData,
+      marketstack: marketstackData,
+      twelveData: twelveData,
+    });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch data from APIs' });
   }
 });
 
-app.listen(PORT, () => console.log(`Server running on http://localhost:${PORT}`));
+app.listen(PORT, () => {
+  console.log(`Server running on http://localhost:${PORT}`);
+});
