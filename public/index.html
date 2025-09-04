@@ -1,146 +1,54 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Stock Explainer AI</title>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <script src="https://apifreellm.com/apifree.min.js"></script>
-  <style>
-    body { font-family: Arial, sans-serif; margin: 2rem; background: #f4f4f4; }
-    #container { background: white; padding: 2rem; border-radius: 10px; max-width: 800px; margin: auto; }
-    input, button { padding: 0.5rem; font-size: 1rem; }
-    #result { margin-top: 1rem; }
-    canvas { margin-top: 1rem; max-width: 100%; }
-  </style>
+<meta charset="UTF-8">
+<title>Stock Explainer AI</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://apifreellm.com/apifree.min.js"></script>
+<style>
+body { font-family: Arial; margin:2rem; background:#f4f4f4; }
+#container { background:white; padding:2rem; border-radius:10px; max-width:800px; margin:auto; }
+input, button { padding:0.5rem; font-size:1rem; }
+#result { margin-top:1rem; }
+canvas { margin-top:1rem; max-width:100%; }
+</style>
 </head>
 <body>
-  <div id="container">
-    <h2>📈 Stock Explainer AI</h2>
-    <input id="ticker" placeholder="Enter ticker (AAPL)" />
-    <button onclick="analyze()">Analyze</button>
-    <div id="result"></div>
-    <canvas id="chart"></canvas>
-  </div>
+<div id="container">
+<h2>📈 Stock Explainer AI</h2>
+<input id="ticker" placeholder="Enter ticker (AAPL)">
+<button onclick="analyze()">Analyze</button>
+<div id="result"></div>
+<canvas id="chart"></canvas>
+</div>
 
-  <script>
-    let chart;
-    async function analyze() {
-      const ticker = document.getElementById('ticker').value.trim();
-      if (!ticker) return alert("Enter a ticker!");
-    
-      document.getElementById('result').innerHTML = "⏳ Analyzing...";
-    
-      try {
-        const res = await fetch(`/api/stock/${ticker}`);
-        const data = await res.json();
-    
-        if (data.error) {
-          document.getElementById('result').innerHTML = `❌ ${data.error}`;
-          return;
-        }
-    
-        // Process and display data from multiple sources
-        displayAlphaVantageData(data.alphaVantage);
-        displayFinnhubData(data.finnhub);
-        displayMarketstackData(data.marketstack);
-        displayTwelveData(data.twelveData);
-    
-      } catch (err) {
-        document.getElementById('result').innerHTML = `❌ ${err.message}`;
-      }
-    }
+<script>
+let chart;
+async function analyze() {
+  const ticker = document.getElementById('ticker').value.trim();
+  if(!ticker) return alert('Enter a ticker!');
+  document.getElementById('result').innerHTML = '⏳ Analyzing...';
 
-function displayAlphaVantageData(data) {
-  // Extract and display relevant data from Alpha Vantage
+  try {
+    const res = await fetch('/api/stock/' + ticker);
+    const data = await res.json();
+    if(data.error){ document.getElementById('result').innerHTML = '❌ '+data.error; return; }
+
+    // Example: display Finnhub price
+    const price = data.finnhub.c || 'N/A';
+    document.getElementById('result').innerHTML = `
+      <h3>${ticker}</h3>
+      <p><b>Current Price (Finnhub):</b> $${price}</p>
+      <p><b>AI Explanation:</b> <span id="ai-output">⏳ Generating...</span></p>
+    `;
+
+    // Generate AI explanation
+    const explanation = await apifree.chat(`Explain stock ${ticker} to a beginner in simple language.`)
+      .then(apifree.print);
+    document.getElementById('ai-output').innerText = explanation;
+
+  } catch(err){ document.getElementById('result').innerHTML = '❌ '+err.message; }
 }
-
-function displayFinnhubData(data) {
-  // Extract and display relevant data from Finnhub
-}
-
-function displayMarketstackData(data) {
-  // Extract and display relevant data from Marketstack
-}
-
-function displayTwelveData(data) {
-  // Extract and display relevant data from Twelve Data
-}
-    <div id="tv_chart_container"></div>
-
-<script type="text/javascript">
-  new TradingView.widget({
-    autosize: true,
-    symbol: 'NASDAQ:AAPL',
-    interval: 'D',
-    container_id: 'tv_chart_container',
-    datafeed: new Datafeeds.UDFCompatibleDatafeed('https://demo_feed.tradingview.com'),
-    library_path: '/path/to/charting_library/',
-    locale: 'en',
-    disabled_features: ['header_widget', 'timeframes_toolbar'],
-    enabled_features: ['study_templates'],
-    overrides: {
-      'mainSeriesProperties.style': 1,
-      'paneProperties.background': '#ffffff',
-      'paneProperties.vertGridProperties.color': '#f1f3f6',
-      'paneProperties.horzGridProperties.color': '#f1f3f6',
-      'symbolWatermarkProperties.transparency': 90,
-    },
-  });
 </script>
-
-
-
-
-        const { quote, history } = data;
-
-        // Show stock info
-        document.getElementById('result').innerHTML = `
-          <h3>${ticker}</h3>
-          <p><b>Price:</b> $${quote.regularMarketPrice}</p>
-          <p><b>Sector:</b> ${quote.sector || 'N/A'}</p>
-          <p><b>AI Explanation:</b> <span id="ai-output">⏳ Generating...</span></p>
-        `;
-
-        // Draw chart
-        const labels = history.dates;
-        const prices = history.closes;
-        const ctx = document.getElementById('chart').getContext('2d');
-        if (chart) chart.destroy();
-        chart = new Chart(ctx, {
-          type: 'line',
-          data: {
-            labels,
-            datasets: [{
-              label: ticker + " Closing Price",
-              data: prices,
-              borderColor: 'blue',
-              fill: false
-            }]
-          },
-          options: {
-            responsive: true,
-            scales: {
-              x: { display: true, title: { display: true, text: 'Date' } },
-              y: { display: true, title: { display: true, text: 'Price (USD)' } }
-            }
-          }
-        });
-
-        // Generate AI explanation using ApiFreeLLM
-        const context = `
-          Stock: ${ticker}
-          Current Price: ${quote.regularMarketPrice}
-          52w High/Low: ${quote.fiftyTwoWeekHigh} / ${quote.fiftyTwoWeekLow}
-          Sector: ${quote.sector || 'N/A'}
-          Recent closing prices: ${history.closes.slice(-5).join(', ')}
-        `;
-        const explanation = await apifree.chat(`Explain this stock to a beginner in simple language:\n${context}`);
-        document.getElementById('ai-output').innerText = explanation;
-
-      } catch (err) {
-        document.getElementById('result').innerHTML = "❌ " + err.message;
-      }
-    }
-  </script>
 </body>
 </html>
